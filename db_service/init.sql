@@ -2,14 +2,15 @@ use db;
 
 CREATE TABLE users(
     id int not null AUTO_INCREMENT,
-    firstname varchar(120) NOT NULL,
-    lastname varchar(120) NOT NULL,
-    email varchar(150) NOT NULL UNIQUE,
+    firstname varchar(50) NOT NULL,
+    lastname varchar(50) NOT NULL,
+    password_hash varchar(60) NOT NULL,
+    email varchar(100) NOT NULL UNIQUE,
     PRIMARY KEY (id)
 );
 
-INSERT INTO users(firstname, lastname, email)
-VALUES("Cristian", "Alexandru", "cristi@yahoo.com"), ("test", "test2", "test@yahoo.com")
+INSERT INTO users(firstname, lastname, password_hash, email)
+VALUES("Cristian", "Alexandru", "pass", "cristi@yahoo.com"), ("test", "test2", "pasdf" "test@yahoo.com")
 
 
 /* CREATE USER 'auth_user'@'localhost' IDENTIFIED BY 'Auth123';

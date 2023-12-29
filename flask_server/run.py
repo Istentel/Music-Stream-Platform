@@ -1,4 +1,4 @@
-from server import app
+from web import app
 import os
 
 # docker build . -t flask_app_dev
