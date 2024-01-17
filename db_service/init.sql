@@ -1,16 +1,27 @@
-use db;
+CREATE USER 'db_user'@'localhost' IDENTIFIED BY 'db_password';
+
+CREATE DATABASE my_database;
+
+GRANT ALL PRIVILEGES ON my_database.* TO 'db_user'@'%';
+
+FLUSH PRIVILEGES;
+
+/*UPDATE mysql.user SET host = '%' WHERE user = 'db_user';
+
+FLUSH PRIVILEGES;*/
+
+USE my_database;
 
 CREATE TABLE users(
-    id int not null AUTO_INCREMENT,
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
     firstname varchar(50) NOT NULL,
     lastname varchar(50) NOT NULL,
     password_hash varchar(60) NOT NULL,
-    email varchar(100) NOT NULL UNIQUE,
-    PRIMARY KEY (id)
+    email varchar(100) UNIQUE NOT NULL
 );
 
 INSERT INTO users(firstname, lastname, password_hash, email)
-VALUES("Cristian", "Alexandru", "pass", "cristi@yahoo.com"), ("test", "test2", "pasdf" "test@yahoo.com")
+VALUES("Cristian", "Alexandru", "pass", "cristi@yahoo.com");
 
 
 /* CREATE USER 'auth_user'@'localhost' IDENTIFIED BY 'Auth123';
