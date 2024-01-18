@@ -1,0 +1,14 @@
+flask
+flask_wtf
+flask_login
+flask_bcrypt
+flask-sqlalchemy
+pymysql
+mysqlclient 
+cryptography
+wtforms
+email_validator
+psycopg2
+mysql-connector-python
+requests
+sqlalchemy

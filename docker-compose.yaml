@@ -1,0 +1,26 @@
+version: '3'
+services:
+  flaskserver:
+    container_name: flaskserver
+    build: ./flask_server/
+    command: sh -c "sleep 30s ; python3 ./run.py"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql_db
+
+  mysql_db:
+    container_name: mysql_db
+    #image: mysql:latest
+    build: ./db_service/
+    restart: always
+    environment:
+      - MYSQL_USER=db_user #roots
+      - MYSQL_PASSWORD=db_password
+      - MYSQL_ALLOW_EMPTY_PASSWORD=true
+      #- MYSQL_ROOT_PASSWORD=db_root_password
+      - MYSQL_DB=my_database
+      - MYSQL_HOST=mysql_db
+      - MYSQL_PORT=3306
+    ports:
+      - '3306:3306'
