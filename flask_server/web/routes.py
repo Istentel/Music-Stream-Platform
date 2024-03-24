@@ -4,14 +4,28 @@ from web.forms import RegisterForm, LoginForm
 from web.models import User
 from flask_login import login_user, logout_user
 
+progress = 25
+
 @app.route('/')
 @app.route('/home')
 def home_page():
-    return render_template('home.html')
+    return render_template('home.html', flash_message=True)
 
 @app.route('/about/<username>')
 def about_page(username):
     return f'<h1>This is the about page of {username}'
+
+@app.route('/play')
+def play():
+    global progress
+    progress += 10
+    if progress > 100:
+        progress = 100
+    return redirect(url_for('home_page'))
+
+@app.route('/pause')
+def pause():
+    return redirect(url_for('home_page'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login_page():

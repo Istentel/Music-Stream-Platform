@@ -1,0 +1,127 @@
+<html>
+<head>
+  <style>
+    .playbar{
+      background: black;
+      position: fixed;
+      left: 10px;
+      bottom: 10px;
+      width: 99%;
+    }
+    .progressbar{
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #progress{
+      -webkit-appearance: button;
+      width: 35%;
+      height: 6px;
+      background: #f53192;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 10px 0;
+    }
+
+    #progress::-webkit-slider-thumb{
+      -webkit-appearance: none;
+      background: #f53192;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 8px solid  #fff;
+      box-shadow: 0 5px 5px rgba(255, 26, 26, 0.22);
+    }
+
+    .controls{
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .controls div{
+      transform: scale(0.7); 
+      width: 60px;
+      height: 60px;
+      margin: 5px;
+      background: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      color: #f53192;
+      box-shadow: 0 10px 20px rgba(255, 26, 25, 0.22);
+      cursor: pointer;
+    }
+
+    .controls div:nth-child(2){
+      transform: scale(1.1);
+      background: #f53192;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <audio controls id="song">
+    <source src="Allie_X_Downtown.mp3" type="audio/mpeg">
+  </audio>
+
+  <div class="playbar">
+    <div class="controls">
+      <div><i class="bi bi-skip-backward-fill"></i></div>
+      <div onclick="playPause()"><i class="bi bi-play-fill" id="ctrlIcon"></i></div>
+      <div><i class="bi bi-fast-forward-fill"></i></div>
+    </div>
+    <div class="progressbar">
+      <input type="range" value="0" id="progress">
+    </div>
+  </div>
+
+
+  <!-- Bootstrap JS and dependencies -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+  <script>
+    let progressbar = document.getElementById("progressbar");
+    let song = document.getElementById("song");
+    let ctrlIcon = document.getElementById("ctrlIcon");
+
+    song.onloadedmetadata = function(){
+      progressbar.max = song.duration;
+      progressbar.value = song.currentTime;
+    }
+
+    function playPause(){
+      console.log(window.location.pathname + "\n");
+      console.log(window.location.href + "\n");
+      if(ctrlIcon.classList.contains("bi-pause")){
+        song.pause();
+        ctrlIcon.classList.remove("bi-pause");
+        ctrlIcon.classList.add("bi-play");
+      }
+      else{
+        song.play();
+        ctrlIcon.classList.add("bi-pause");
+        ctrlIcon.classList.remove("bi-play");
+      }
+    }
+
+    if(song.play()){
+      setInterval(()=>{
+        progressbar.value = song.currentTime;
+      },500)
+    }
+
+    progressbar.onchange = function(){
+      song.play();
+      song.currentTime = progressbar.value;
+      ctrlIcon.classList.add("bi-pause");
+      ctrlIcon.classList.remove("bi-play");
+    }
+  </script>
+</body>
+</html>

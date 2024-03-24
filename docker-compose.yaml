@@ -23,4 +23,4 @@ services:
       - MYSQL_HOST=mysql_db
       - MYSQL_PORT=3306
     ports:
-      - '3306:3306'
+      - '3307:3306'
