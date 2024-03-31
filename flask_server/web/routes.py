@@ -3,6 +3,7 @@ from flask import render_template, redirect, url_for, jsonify, flash
 from web.forms import RegisterForm, LoginForm
 from web.models import User
 from flask_login import login_user, logout_user
+import requests
 
 progress = 25
 
@@ -45,13 +46,12 @@ def login_page():
 @app.route('/testapi')
 def test_api():
     try:
-        usrs = User.query.all()
-        if db:
-            print("Db exists!")
+        response = requests.get("http://playback:5000/song")
+
+        if(response):
+            return jsonify({'message': 'Response valid!'})
         else:
-            print("Db does not exists!")
-        
-        return jsonify(usrs)
+            return jsonify({'message': 'No valid response'})
     except Exception as e:
         return jsonify({'error': f"{e}"})
 

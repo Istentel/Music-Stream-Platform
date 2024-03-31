@@ -11,16 +11,38 @@ services:
 
   mysql_db:
     container_name: mysql_db
-    #image: mysql:latest
     build: ./db_service/
     restart: always
     environment:
       - MYSQL_USER=db_user #roots
       - MYSQL_PASSWORD=db_password
       - MYSQL_ALLOW_EMPTY_PASSWORD=true
-      #- MYSQL_ROOT_PASSWORD=db_root_password
       - MYSQL_DB=my_database
       - MYSQL_HOST=mysql_db
       - MYSQL_PORT=3306
     ports:
       - '3307:3306'
+  
+  playback:
+    build: ./playback_service/
+    command: python -u run.py
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./playback_service/:/app
+      - ./playback_service/db_songs:/var/lib/songs/data:ro
+    links:
+      - mongo_db
+
+  mongo_db:
+    image: mongo:latest
+    hostname: mongo_db
+    environment:
+      - MONGO_INITDB_DATABASE=songs_db
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=pass
+    volumes:
+      - ./playback_service/init-db.js:/docker-entrypoint-initdb.d/init-db.js:ro   
+    ports:
+      - "27017:27017"
+
