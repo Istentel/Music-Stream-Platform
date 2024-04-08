@@ -63,15 +63,14 @@
   </style>
 </head>
 <body>
-
   <audio controls id="song">
-    <source src="http://playback:5000/song" type="audio/mpeg">
+    <source src="http://localhost:5000/song" type="audio/mpeg">
   </audio>
 
   <div class="playbar">
     <div class="controls">
       <div><i class="bi bi-skip-backward-fill"></i></div>
-      <div onclick="playPause()"><i class="bi bi-play-fill" id="ctrlIcon"></i></div>
+      <div onclick="playPause()"><i class="bi bi-play" id="ctrlIcon"></i></div>
       <div><i class="bi bi-fast-forward-fill"></i></div>
     </div>
     <div class="progressbar">
@@ -86,7 +85,7 @@
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
   <script>
-    let progressbar = document.getElementById("progressbar");
+    let progressbar = document.getElementById("progress");
     let song = document.getElementById("song");
     let ctrlIcon = document.getElementById("ctrlIcon");
 
