@@ -3,30 +3,26 @@ from flask import render_template, redirect, url_for, jsonify, flash
 from web.forms import RegisterForm, LoginForm
 from web.models import User
 from flask_login import login_user, logout_user
-import requests
-
-progress = 25
+import requests, base64
 
 @app.route('/')
 @app.route('/home')
 def home_page():
-    return render_template('home.html', flash_message=True)
+    songs_response = requests.get('http://playback:5000/api/songs')
 
-@app.route('/about/<username>')
-def about_page(username):
-    return f'<h1>This is the about page of {username}'
+    if songs_response.status_code != 200:
+        return 'Failed to fetch songs data'
+    
+    songs = songs_response.json()
 
-@app.route('/play')
-def play():
-    global progress
-    progress += 10
-    if progress > 100:
-        progress = 100
-    return redirect(url_for('home_page'))
+    # Decode base64-encoded image data
+    for song in songs:
+        if 'image' in song:
+            image_data = base64.b64decode(song['image'])
+            song['image'] = f"data:image/png;base64,{base64.b64encode(image_data).decode()}"
+    
 
-@app.route('/pause')
-def pause():
-    return redirect(url_for('home_page'))
+    return render_template('home.html', songs=songs, flash_message=True)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login_page():

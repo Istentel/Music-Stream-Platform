@@ -3,6 +3,104 @@
 Home Page
 {% endblock %}
 
+{% block head %}
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f3f3f3;
+        margin: 0;
+        padding: 0;
+    }
+    .container {
+        max-width: 800px;
+        margin: 20px auto;
+        padding: 20px;
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+        text-align: center;
+        margin-bottom: 20px;
+        color: #333;
+    }
+    ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    li {
+        display: flex;
+        align-items: center;
+        border-bottom: 1px solid #eee;
+        padding: 10px;
+    }
+    img {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        margin-right: 10px;
+    }
+    .song-details {
+        flex: 1;
+    }
+    .song-name {
+        font-size: 18px;
+        color: #333;
+        margin: 0;
+    }
+    .active .song-name {
+        color: green;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<h1>Hello, world!</h1>
+<ul id="songList">
+    {% for song in songs %}
+        <li data-song-id="{{ song.id }}">
+            {% if song.image %}
+                <img src="{{ song.image }}" alt="{{ song.name }}">
+            {% endif %}
+
+            <div class="song-details">
+                <p class="song-name">{{ song.name }}</p>
+            </div>
+        </li>
+    {% endfor %}
+</ul>
+
+<!-- Playbar -->
+{% include 'playbar.html' %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const songList = document.getElementById('songList');
+
+        // Add click event listener to each list item
+        songList.addEventListener('click', function (event) {
+            const listItem = event.target.closest('li'); // Get the closest <li> element
+            if (listItem) {
+                const songId = listItem.getAttribute('data-song-id');
+
+                // Remove 'active' class from previously clicked items
+                const previousActiveItem = songList.querySelector('.active');
+
+                if (previousActiveItem) {
+                    previousActiveItem.classList.remove('active');
+                }
+                
+                // Add 'active' class to the clicked item
+                listItem.classList.add('active');
+
+                if (songId) {
+                    // Perform a certain action based on the song ID
+                    console.log('Song with ID', songId, 'clicked');
+                    // You can call a function here to handle the click event
+                }
+            }
+        });
+    });
+</script>
+
 {% endblock %}
