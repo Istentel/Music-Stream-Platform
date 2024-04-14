@@ -73,11 +73,11 @@ def sync_songs_with_mongodb(directory):
     else:
         print("No songs deleted!")
 
-@app.route('/song', methods=['GET'])
+@app.route('/song/<song_id>', methods=['GET'])
 @cross_origin(origin='localhost',headers=['Content- Type','Authorization'])
-def post_song():
+def post_song(song_id):
     db = get_db()
-    song = db.songs.find_one({"id": 1})
+    song = db.songs.find_one({"id": song_id})
 
     if(song):
         file_path = song["path"]

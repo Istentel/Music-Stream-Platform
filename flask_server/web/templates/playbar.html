@@ -63,8 +63,8 @@
   </style>
 </head>
 <body>
-  <audio id="song">
-    <source src="http://localhost:5000/song" type="audio/mpeg">
+  <audio id="audioPlayer">
+    <source src="" type="audio/mpeg" id="audioSource">
   </audio>
 
   <div class="playbar">
@@ -86,38 +86,58 @@
 
   <script>
     let progressbar = document.getElementById("progress");
-    let song = document.getElementById("song");
+    let audioPlayer = document.getElementById("audioPlayer");
     let ctrlIcon = document.getElementById("ctrlIcon");
+    const audioSource = document.getElementById('audioSource');
+    
+    audioPlayer.onloadedmetadata = function(){
+      progressbar.max = audioPlayer.duration;
+      progressbar.value = audioPlayer.currentTime;
+    }
 
-    song.onloadedmetadata = function(){
-      progressbar.max = song.duration;
-      progressbar.value = song.currentTime;
+    // Function to handle song selection
+    function playSong(songId) {
+        audioSource.src = "http://localhost:5000/song/" + songId;
+        audioPlayer.load(); // Reload audio player with new source
+
+        if(ctrlIcon.classList.contains("bi-pause")){
+          ctrlIcon.classList.remove("bi-pause");
+          ctrlIcon.classList.add("bi-play");
+        }
+
+        playPause();
     }
 
     function playPause(){
       console.log(window.location.pathname + "\n");
       console.log(window.location.href + "\n");
       if(ctrlIcon.classList.contains("bi-pause")){
-        song.pause();
+        audioPlayer.pause();
         ctrlIcon.classList.remove("bi-pause");
         ctrlIcon.classList.add("bi-play");
       }
       else{
-        song.play();
+        audioPlayer.play();
         ctrlIcon.classList.add("bi-pause");
         ctrlIcon.classList.remove("bi-play");
       }
     }
 
-    if(song.play()){
+    audioPlayer.addEventListener('ended', function() {
+      // Change control icon to play icon when song ends
+      ctrlIcon.classList.remove("bi-pause");
+      ctrlIcon.classList.add("bi-play");
+    });
+
+    if(audioPlayer.play()){
       setInterval(()=>{
-        progressbar.value = song.currentTime;
+        progressbar.value = audioPlayer.currentTime;
       },500)
     }
 
     progressbar.onchange = function(){
-      song.play();
-      song.currentTime = progressbar.value;
+      audioPlayer.play();
+      audioPlayer.currentTime = progressbar.value;
       ctrlIcon.classList.add("bi-pause");
       ctrlIcon.classList.remove("bi-play");
     }
