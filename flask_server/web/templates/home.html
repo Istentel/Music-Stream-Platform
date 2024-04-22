@@ -5,75 +5,110 @@ Home Page
 
 {% block head %}
 <style>
-    body {
-        font-family: Arial, sans-serif;
-        background-color: #f3f3f3;
-        margin: 0;
-        padding: 0;
-    }
-    .container {
-        max-width: 800px;
-        margin: 20px auto;
-        padding: 20px;
-        background-color: #fff;
-        border-radius: 10px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    }
-    h1 {
-        text-align: center;
-        margin-bottom: 20px;
-        color: #333;
-    }
-    ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
-    li {
-        display: flex;
-        align-items: center;
-        border-bottom: 1px solid #eee;
-        padding: 10px;
-    }
-    img {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        margin-right: 10px;
-    }
-    .song-details {
-        flex: 1;
-    }
-    .song-name {
-        font-size: 18px;
-        color: #333;
-        margin: 0;
-    }
-    .active .song-name {
-        color: green;
-    }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f3f3f3;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 100%;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+        }
+        .highlighted {
+            color: green;
+        }
 </style>
 {% endblock %}
 
 {% block content %}
-<ul id="songList">
-    {% for song in songs %}
-        <li data-song-id="{{ song.id }}">
-            {% if song.image %}
-                <img src="{{ song.image }}" alt="{{ song.name }}">
-            {% endif %}
-
-            <div class="song-details">
-                <p class="song-name">{{ song.name }}</p>
-            </div>
-        </li>
-    {% endfor %}
-</ul>
+<div class="container">
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Title</th>
+                <th>Artist</th>
+                <th>Album</th>
+                <th>Duration</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for song in songs %}
+                <tr data-song-id="{{ song.id }}">
+                    <td>{{ loop.index0 }}</td>
+                    <td>
+                        {% if song.image %}
+                            <img src="{{ song.image }}">
+                        {% endif %}
+                        {{song.name}}
+                    </td>
+                    <td>{{ song.artist }}</td>
+                    <td>{{ song.album }}</td>
+                    <td>{{ song.duration}}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 
 <!-- Playbar -->
 {% include 'playbar.html' %}
 
 <script>
+    document.addEventListener('DOMContentLoaded', function () {
+            const tableRows = document.querySelectorAll('tbody tr');
+
+            tableRows.forEach(row => {
+                row.addEventListener('click', function () {
+                    // Remove .highlighted class from all rows
+                    tableRows.forEach(r => {
+                        r.querySelector('td:nth-child(2)').classList.remove('highlighted');
+                    });
+
+                    // Add .highlighted class to the clicked row
+                    const titleCell = row.querySelector('td:nth-child(2)');
+                    titleCell.classList.toggle('highlighted');
+
+                    // Get the song ID
+                    const songId = row.getAttribute('data-song-id');
+                    
+                    if (songId) {
+                        console.log('Song ID:', songId);
+                        
+                        playSong(songId);
+                    }
+
+                });
+            });
+        });
+
     document.addEventListener('DOMContentLoaded', function () {
         const songList = document.getElementById('songList');
 

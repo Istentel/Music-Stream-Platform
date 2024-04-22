@@ -27,10 +27,11 @@ def get_db():
     db = client["songs_db"]
     return db
 
-class SongModel:
-    def __init__(self, name:str, path:str):
-        self.name = name
-        self.path = path
+def convert(seconds):
+    minutes = seconds // 60
+    seconds %= 60
+
+    return "%02d:%02d" % (minutes, seconds)
 
 # Function to recursively traverse a directory and get list of songs
 def get_songs_from_directory(directory):
@@ -95,12 +96,17 @@ def fetch_songs():
 @app.route('/api/songs')
 def get_songs():
     db = get_db()
-    #songs = db.songs.find({}, {'id': 0, 'name': 1, 'path': 1})
     songs = db.songs.find()
     song_list = []
     for song in songs:
         # Extract image from MP3 file
         mp3 = MP3(song['path'], ID3=ID3)
+
+        # Extract artist and album from MP3 tags
+        artist = mp3.tags.get('TPE1').text[0] if 'TPE1' in mp3 else None
+        album = mp3.tags.get('TALB').text[0] if 'TALB' in mp3 else None
+        duration = convert(int(mp3.info.length))
+
         if 'APIC:' in mp3:
             apic = mp3.tags.get('APIC:')
             image_data = BytesIO(apic.data)
@@ -110,16 +116,22 @@ def get_songs():
             song_info = {
                 'id': song['id'],
                 'name': song['name'],
+                'artist': artist,
+                'album': album,
+                'duration': duration,
                 'image': image_base64
             }
-            song_list.append(song_info)
         else:
             # If no image is found, include only ID and name
             song_info = {
                 'id': song['id'],
-                'name': song['name']
+                'name': song['name'],
+                'artist': artist,
+                'album': album,
+                'duration': duration
             }
-            song_list.append(song_info)
+
+        song_list.append(song_info)
 
     return jsonify(song_list)
 
