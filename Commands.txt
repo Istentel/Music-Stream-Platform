@@ -1,0 +1,5 @@
+docker-compose up --build
+
+mongosh --username root --password pass
+
+db.songs.find() // print all songs from the table

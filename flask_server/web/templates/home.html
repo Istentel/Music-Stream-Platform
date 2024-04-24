@@ -3,6 +3,140 @@
 Home Page
 {% endblock %}
 
+{% block head %}
+<style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f3f3f3;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 100%;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+        }
+        .highlighted {
+            color: green;
+        }
+</style>
+{% endblock %}
+
 {% block content %}
-<h1>Hello, world!</h1>
+<div class="container">
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Title</th>
+                <th>Artist</th>
+                <th>Album</th>
+                <th>Duration</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for song in songs %}
+                <tr data-song-id="{{ song.id }}">
+                    <td>{{ loop.index0 }}</td>
+                    <td>
+                        {% if song.image %}
+                            <img src="{{ song.image }}">
+                        {% endif %}
+                        {{song.name}}
+                    </td>
+                    <td>{{ song.artist }}</td>
+                    <td>{{ song.album }}</td>
+                    <td>{{ song.duration}}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Playbar -->
+{% include 'playbar.html' %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+            const tableRows = document.querySelectorAll('tbody tr');
+
+            tableRows.forEach(row => {
+                row.addEventListener('click', function () {
+                    // Remove .highlighted class from all rows
+                    tableRows.forEach(r => {
+                        r.querySelector('td:nth-child(2)').classList.remove('highlighted');
+                    });
+
+                    // Add .highlighted class to the clicked row
+                    const titleCell = row.querySelector('td:nth-child(2)');
+                    titleCell.classList.toggle('highlighted');
+
+                    // Get the song ID
+                    const songId = row.getAttribute('data-song-id');
+                    
+                    if (songId) {
+                        console.log('Song ID:', songId);
+                        
+                        playSong(songId);
+                    }
+
+                });
+            });
+        });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const songList = document.getElementById('songList');
+
+        // Add click event listener to each list item
+        songList.addEventListener('click', function (event) {
+            const listItem = event.target.closest('li'); // Get the closest <li> element
+            if (listItem) {
+                const songId = listItem.getAttribute('data-song-id');
+
+                // Remove 'active' class from previously clicked items
+                const previousActiveItem = songList.querySelector('.active');
+
+                if (previousActiveItem) {
+                    previousActiveItem.classList.remove('active');
+                }
+                
+                // Add 'active' class to the clicked item
+                listItem.classList.add('active');
+
+                if (songId) {
+                    // Perform a certain action based on the song ID
+                    console.log('Song with ID', songId, 'clicked');
+                    // You can call a function here to handle the click event
+                    playSong(songId);
+                }
+            }
+        });
+    });
+</script>
+
 {% endblock %}
