@@ -8,20 +8,40 @@ services:
       - "8080:8080"
     depends_on:
       - mysql_db
+    networks:
+      - mynetwork
 
   mysql_db:
     container_name: mysql_db
-    build: ./db_service/
+    image: mysql:5.7
     restart: always
     environment:
-      - MYSQL_USER=db_user #roots
-      - MYSQL_PASSWORD=db_password
-      - MYSQL_ALLOW_EMPTY_PASSWORD=true
-      - MYSQL_DB=my_database
-      - MYSQL_HOST=mysql_db
-      - MYSQL_PORT=3306
+      MYSQL_DATABASE: 'db'
+      MYSQL_USER: 'user'
+      MYSQL_PASSWORD: 'password'
+      MYSQL_ROOT_PASSWORD: 'password'
     ports:
       - '3307:3306'
+    networks:
+    - mynetwork
+
+  auth_service:
+    container_name: auth_service
+    build:
+      context: ./auth_service
+    environment:
+      DB_HOST: mysql_db
+      DB_NAME: db
+      DB_USER: user
+      DB_PASSWORD: password
+    links:
+      - mysql_db
+    depends_on:
+      - mysql_db
+    ports:
+      - "5001:5001"
+    networks:
+      - mynetwork
   
   playback:
     build: ./playback_service/
@@ -33,6 +53,9 @@ services:
       - ./playback_service/db_songs:/var/lib/songs/data:ro
     links:
       - mongo_db
+    networks:
+      - mynetwork
+
 
   mongo_db:
     image: mongo:latest
@@ -45,4 +68,9 @@ services:
       - ./playback_service/init-db.js:/docker-entrypoint-initdb.d/init-db.js:ro   
     ports:
       - "27017:27017"
+    networks:
+      - mynetwork
+
+networks:
+  mynetwork:
 

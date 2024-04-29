@@ -1,8 +1,7 @@
-from web import app, db
+from web import app
 from flask import render_template, redirect, url_for, jsonify, flash
+from web.db_api import register_user_api, login_user_api
 from web.forms import RegisterForm, LoginForm
-from web.models import User
-from flask_login import login_user, logout_user
 import requests, base64
 
 @app.route('/')
@@ -29,10 +28,9 @@ def login_page():
     form = LoginForm()
 
     if form.validate_on_submit():
-        attempted_user = User.query.filter_by(email=form.email.data).first()
+        response = login_user_api(form.email.data, form.password.data)
 
-        if attempted_user and attempted_user.check_password_correction(attempted_password=form.password.data):
-            login_user(attempted_user)
+        if response and response.status_code == 200:
             flash('Success! You logged in!', category='success')
             return redirect(url_for('home_page'))
         else:
@@ -56,14 +54,15 @@ def register_page():
     form = RegisterForm()
 
     if form.validate_on_submit():
-        new_user = User(firstname=form.firstname.data, 
-                        lastname=form.lastname.data,
-                        password=form.password1.data,
-                        email=form.email.data)
+        new_user = {'firstname': form.firstname.data, 'lastname': form.lastname.data, 'password': form.password1.data, 'email': form.email.data}
         
-        db.session.add(new_user)
-        db.session.commit()
-        return redirect(url_for('home_page'))
+        response = register_user_api(new_user)
+
+        if response:
+            flash(f'Success! User {new_user["firstname"]} + {new_user["lastname"]} created succesfully!', category='success')
+            return render_template('home.html')
+        else:
+            return jsonify({'message': 'No valid response'}) 
     
     if form.errors != {}:
         for err_msj in form.errors.values():

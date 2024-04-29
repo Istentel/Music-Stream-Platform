@@ -1,0 +1,9 @@
+Flask==3.0.0
+requests==2.26.0
+Werkzeug==3.0.1
+Flask-Bcrypt==1.0.1
+Flask-SQLAlchemy==3.0.3
+Flask-RESTful
+PyJWT
+pymysql
+mysqlclient
