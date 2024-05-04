@@ -1,7 +1,10 @@
-import os
-from flask import Flask, jsonify, request, json
+from flask import Flask, jsonify, request, json, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
+from  werkzeug.security import generate_password_hash, check_password_hash
+import os, jwt, datetime
+from functools import wraps
+from jwt.exceptions import InvalidTokenError
 
 app = Flask(__name__)
 
@@ -12,7 +15,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://{}:{}@{}/{}'.format(
     os.getenv('DB_NAME', 'db')
 )
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = '7c121c18-7db5-4a81-97d8-358f55b70bbf'
 
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
@@ -44,56 +46,110 @@ class User(db.Model):
 with app.app_context():
     db.create_all()
 
+def createJWT(username, secret):
+    return jwt.encode(
+        {
+            "username": username,
+            "exp": datetime.datetime.now(tz=datetime.timezone.utc)
+            + datetime.timedelta(days=1),
+            "iat": datetime.datetime.now(datetime.timezone.utc),
+        },
+        secret,
+        algorithm="HS256",
+    )
+
 @app.route('/api/hello', methods=['GET'])
 def get_hello():
     return jsonify({'message': 'Hello from the db_gateway server!'})
 
-@app.route('/api/register', methods=['POST'])
-def register_user():          
+@app.route("/validate", methods=["POST"])
+def validate_token():
+    # Get the token from the request
+    token = request.json.get('token')
+
+    if not token:
+        return jsonify({'message': 'Token is missing'}), 400
+
     try:
-        print("Call register api!")
-        user = json.loads(request.json)
+        # Verify and decode the token
+        decoded_token = jwt.decode(token, os.environ.get("JWT_SECRET"), algorithms=['HS256'])
 
-        first_name = user["firstname"]
-        last_name = user["lastname"]
-        new_password = user["password"]
-        new_email = user["email"]
+        if 'exp' in decoded_token:
+            current_time = datetime.datetime.now(datetime.timezone.utc)
+            token_exp_time = datetime.datetime.utcfromtimestamp(decoded_token['exp']).replace(tzinfo=datetime.timezone.utc)
+            if current_time > token_exp_time:
+                return jsonify({'message': 'Token has expired'}), 401
 
-        if first_name and last_name and new_password and new_email and request.method == 'POST':
-            new_user = User(firstname=first_name,
-                            lastname=last_name, 
-                            password=new_password,
-                            email=new_email)
-            
-            db.session.add(new_user)
-            db.session.commit()
-
-            response = jsonify('User added successfully!')
-            response.status_code = 200
-            return response
-        else:
-            response = jsonify('No data available')
-            response.status_code = 204
-            return response
-    except Exception as e:
-        print(e)
-        response = "Internal server error!"
-        response.status_code = 500
-        return response
+        # Token is valid
+        return jsonify({'message': 'Token is valid'}), 200
     
-@app.route('/api/login', methods=['GET'])
+    except InvalidTokenError:
+        # Token is invalid or tampered with
+        return jsonify({'message': 'Invalid token'}), 401
+
+@app.route('/register', methods=['POST'])
+def register_user():          
+    # try:
+    print("Call register api!")
+    user = json.loads(request.json)
+
+    first_name = user["firstname"]
+    last_name = user["lastname"]
+    new_password = user["password"]
+    new_email = user["email"]
+
+    if first_name and last_name and new_password and new_email and request.method == 'POST':
+        new_user = User(firstname=first_name,
+                        lastname=last_name, 
+                        password=new_password,
+                        email=new_email)
+        
+        db.session.add(new_user)
+        db.session.commit()
+
+        # generates the JWT Token
+        token = createJWT(new_email, os.environ.get("JWT_SECRET"))
+
+        return make_response(jsonify({'token' : token}), 201)
+    else:
+        return "No data available", 204
+        
+    # except Exception as e:
+    #     return jsonify({'error': f"{e}"}), 500
+    
+@app.route('/login', methods=['GET'])
 def login_user(): 
     auth = request.authorization
 
     if not auth:
-        return "missing credentials", 401
+        return make_response(
+            'Could not verify',
+            401,
+            {'WWW-Authenticate' : 'Basic realm ="Login required !!"'}
+        )
     
     attempted_user = User.query.filter_by(email=auth.username).first()
     
-    if attempted_user and attempted_user.check_password_correction(attempted_password=auth.password):
-        return "Successfuly logged", 200
-    else:
-        return "Invalid credentials", 401
+    if not attempted_user:
+            # returns 401 if user does not exist
+            return make_response(
+                'Could not verify',
+                401,
+                {'WWW-Authenticate' : 'Basic realm ="User does not exist !!"'}
+            )
+
+    if attempted_user.check_password_correction(attempted_password=auth.password):
+        # generates the JWT Token
+        token = createJWT(attempted_user.email, os.environ.get("JWT_SECRET"))
+
+        return make_response(jsonify({'token' : token}), 200)
+    
+    # returns 403 if password is wrong
+    return make_response(
+        'Could not verify',
+        403,
+        {'WWW-Authenticate' : 'Basic realm ="Wrong Password !!"'}
+    )
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=True)

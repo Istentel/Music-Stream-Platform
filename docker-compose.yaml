@@ -34,6 +34,7 @@ services:
       DB_NAME: db
       DB_USER: user
       DB_PASSWORD: password
+      JWT_SECRET: '7c121c18-7db5-4a81-97d8-358f55b70bbf'
     links:
       - mysql_db
     depends_on:
