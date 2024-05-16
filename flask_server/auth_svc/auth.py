@@ -39,7 +39,14 @@ def validate_request(request):
     )
 
     if response.status_code == 200:
-        return response.text, None
+        # Extract email from response JSON
+        response_json = response.json()
+        email = response_json.get("email")
+
+        if email:
+            return email, None
+        else:
+            return None, ("Email not found in response", 500)
     else:
         return None, (response.text, response.status_code)
 
@@ -52,7 +59,15 @@ def validate_token(token):
     response = requests.post("http://auth_service:5001/validate", json={'token': token})
 
     if response.status_code == 200:
-        return response.text, None
+        
+        # Extract email from response JSON
+        response_json = response.json()
+        email = response_json.get("email")
+        
+        if email:
+            return email, None
+        else:
+            return None, ("Email not found in response", 500)
     else:
         return None, (response.text, response.status_code)
 

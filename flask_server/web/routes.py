@@ -11,12 +11,12 @@ def home_page():
         if not session.get("token"):
             return redirect(url_for('login_page'))
 
-        access, err = validate_token(session["token"])
+        email, err = validate_token(session["token"])
 
         if err:
             return err
 
-        songs_response = requests.get('http://playback:5000/api/songs')
+        songs_response = requests.get(f'http://playback:5000/api/songs/{email}')
 
         if songs_response.status_code != 200:
             return 'Failed to fetch songs data'
@@ -30,11 +30,45 @@ def home_page():
                 song['image'] = f"data:image/png;base64,{base64.b64encode(image_data).decode()}"
         
 
-        return render_template('home.html', logged_in=True, songs=songs, flash_message=True)
+        return render_template('home.html', logged_in=True, email=email, songs=songs, flash_message=True)
     
     except KeyError as e:
         flash(e, category='danger')
         return redirect(url_for("login_page"))
+    
+@app.route('/favourite')
+def favourite_page():
+    try:
+        if not session.get("token"):
+            return redirect(url_for('login_page'))
+        
+        email, err = validate_token(session["token"])
+
+        if err:
+            return err
+        
+        songs_response = requests.get(f'http://playback:5000/api/songs/{email}')
+
+        if songs_response.status_code != 200:
+            return 'Failed to fetch songs data'
+        
+        songs = songs_response.json()
+
+        songs = [song for song in songs if song.get('favourite', True)]
+
+        # Decode base64-encoded image data
+        for song in songs:
+            if 'image' in song:
+                image_data = base64.b64decode(song['image'])
+                song['image'] = f"data:image/png;base64,{base64.b64encode(image_data).decode()}"
+        
+
+        return render_template('favourite.html', logged_in=True, email=email, songs=songs, flash_message=True)
+        
+    except KeyError as e:
+        flash(e, category='danger')
+        return redirect(url_for("login_page"))
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login_page():

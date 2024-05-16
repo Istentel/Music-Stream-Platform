@@ -32,7 +32,7 @@
                     <a class="nav-link" href="{{ url_for('home_page') }}">Home<span class="sr-only">(current)</span></a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#">Browse</a>
+                    <a class="nav-link" href="{{ url_for('favourite_page') }}">Favourite</a>
                 </li>
             </ul>
             {% if logged_in %}

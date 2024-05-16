@@ -3,7 +3,7 @@ from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, APIC
 from io import BytesIO
 from flask_cors import CORS, cross_origin
-import base64, pymongo, os
+import base64, pymongo, os, requests
 from pymongo import MongoClient
 from uuid import uuid4
 
@@ -93,11 +93,19 @@ def fetch_songs():
     songs = [{"id": song["id"], "name": song["name"], "path": song["path"] } for song in _songs]
     return jsonify({"songs": songs})
 
-@app.route('/api/songs')
-def get_songs():
+@app.route('/api/songs/<string:email>')
+def get_songs(email):
     db = get_db()
     songs = db.songs.find()
     song_list = []
+
+    # Fetch the list of favorite song IDs for the user
+    response = requests.get(f'http://auth_service:5001/favourites/{email}')
+    if response.status_code == 200:
+        favourite_songs = response.json()['song_ids']
+    else:
+        favourite_songs = []
+
     for song in songs:
         # Extract image from MP3 file
         mp3 = MP3(song['path'], ID3=ID3)
@@ -130,6 +138,12 @@ def get_songs():
                 'album': album,
                 'duration': duration
             }
+
+        # Check if the song is a favorite
+        if song['id'] in favourite_songs:
+            song_info['favourite'] = True
+        else:
+            song_info['favourite'] = False
 
         song_list.append(song_info)
 

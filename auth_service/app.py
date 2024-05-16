@@ -5,8 +5,11 @@ from  werkzeug.security import generate_password_hash, check_password_hash
 import os, jwt, datetime
 from functools import wraps
 from jwt.exceptions import InvalidTokenError
+from flask_cors import CORS
 
 app = Flask(__name__)
+
+CORS(app, origins=['http://localhost:8080'])
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://{}:{}@{}/{}'.format(
     os.getenv('DB_USER', 'user'),
@@ -42,14 +45,22 @@ class User(db.Model):
         return f'<User {self.firstname} {self.lastname}: {self.email}>'
     
 
+class Favourite(db.Model):
+    __tablename__ = 'favourite'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    song_id = db.Column(db.String(50), nullable=False)
+
+    user = db.relationship('User', backref=db.backref('favourites', lazy=True))
+
 # Create table
 with app.app_context():
     db.create_all()
 
-def createJWT(username, secret):
+def createJWT(email, secret):
     return jwt.encode(
         {
-            "username": username,
+            "email": email,
             "exp": datetime.datetime.now(tz=datetime.timezone.utc)
             + datetime.timedelta(days=1),
             "iat": datetime.datetime.now(datetime.timezone.utc),
@@ -61,6 +72,63 @@ def createJWT(username, secret):
 @app.route('/api/hello', methods=['GET'])
 def get_hello():
     return jsonify({'message': 'Hello from the db_gateway server!'})
+
+@app.route('/favourites/add', methods=['POST'])
+def add_favourite():
+    data = request.json
+    email = data.get('email')
+    song_id = data.get('song_id')
+
+    if not email or not song_id:
+        return jsonify({'message': 'Email and song ID are required'}), 400
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({'message': 'User not found'}), 404
+
+    # Check if the song is already a favorite for the user
+    if Favourite.query.filter_by(user_id=user.id, song_id=song_id).first():
+        return jsonify({'message': 'Song already a favorite'}), 400
+
+    # Create a new favorite entry
+    favourite = Favourite(user_id=user.id, song_id=song_id)
+    db.session.add(favourite)
+    db.session.commit()
+
+    return jsonify({'message': 'Favorite song added successfully'}), 200
+
+@app.route('/favourites/remove', methods=['POST'])
+def remove_favourite():
+    data = request.json
+    email = data.get('email')
+    song_id = data.get('song_id')
+
+    if not email or not song_id:
+        return jsonify({'message': 'Email and song ID are required'}), 400
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({'message': 'User not found'}), 404
+
+    favourite = Favourite.query.filter_by(user_id=user.id, song_id=song_id).first()
+    if not favourite:
+        return jsonify({'message': 'Song is not a favorite for this user'}), 404
+
+    # Remove the favorite entry
+    db.session.delete(favourite)
+    db.session.commit()
+
+    return jsonify({'message': 'Favorite song removed successfully'}), 200
+
+@app.route('/favourites/<string:email>', methods=['GET'])
+def get_favourite_songs(email):
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    favourites = Favourite.query.filter_by(user_id=user.id).all()
+    song_ids = [f.song_id for f in favourites]
+    return jsonify({'song_ids': song_ids}), 200
 
 @app.route("/validate", methods=["POST"])
 def validate_token():
@@ -80,8 +148,10 @@ def validate_token():
             if current_time > token_exp_time:
                 return jsonify({'message': 'Token has expired'}), 401
 
+        user_email = decoded_token['email']
+
         # Token is valid
-        return jsonify({'message': 'Token is valid'}), 200
+        return jsonify({'email': user_email}), 200
     
     except InvalidTokenError:
         # Token is invalid or tampered with
