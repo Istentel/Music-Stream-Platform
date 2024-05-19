@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+{% block title %}
+Searched
+{% endblock %}
+
+{% block head %}
+<style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f3f3f3;
+            margin: 0;
+            padding: 0;
+        }
+        .songsTable {
+            width: 100%;
+            margin: 20px auto;
+            /* padding: 20px; this narrows the list*/
+            padding-bottom: 65px; 
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+        }
+        .highlighted {
+            color: green;
+        }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="songsTable">
+    <table class="table table-hover table-dark">
+        <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">Title</th>
+                <th scope="col">Artist</th>
+                <th scope="col">Album</th>
+                <th scope="col">Duration</th>
+                <th scope="col">Favourite</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for song in songs %}
+                <tr data-song-id="{{ song.id }}">
+                    <td>{{ loop.index0 }}</td>
+                    <td>
+                        {% if song.image %}
+                            <img src="{{ song.image }}">
+                        {% endif %}
+                        {{song.name}}
+                    </td>
+                    <td>{{ song.artist }}</td>
+                    <td>{{ song.album }}</td>
+                    <td>{{ song.duration}}</td>
+                    <td>
+                        <i onclick="likeSong(event, '{{song.id}}')"
+                            class="bi {{ 'bi-heart-fill' if song.favourite else 'bi-heart' }}"
+                            id="favouriteButton_{{ song.id }}"
+                            style="text-align: center;">
+                        </i>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Playbar -->
+{% include 'playbar.html' %}
+
+<script>
+    
+    function likeSong(event, songId){
+        event.stopPropagation();
+
+        let favouriteButton = document.getElementById("favouriteButton_" + songId);
+
+        if(favouriteButton.classList.contains("bi-heart-fill")){
+            favouriteButton.classList.remove("bi-heart-fill");
+            favouriteButton.classList.add("bi-heart");
+
+             // Remove the song from favorites
+            fetch('http://localhost:5001/favourites/remove', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: '{{email}}', // Replace with the user's email
+                    song_id: songId,
+                }),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to remove song from favorites');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log(data.message); // Log success message
+                // Update the UI to reflect the removal of the favorite
+                favouriteButton.classList.remove("bi-heart-fill");
+                favouriteButton.classList.add("bi-heart");
+            })
+            .catch(error => {
+                console.error(error.message); // Log error message
+            });
+        }
+        else{
+            favouriteButton.classList.add("bi-heart-fill");
+            favouriteButton.classList.remove("bi-heart");
+
+            // Make a POST request to add the song to favorites
+            fetch('http://localhost:5001/favourites/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: '{{email}}',
+                    song_id: songId,
+                }),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to add song to favorites');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log(data.message); // Log success message
+            })
+            .catch(error => {
+                console.error(error.message); // Log error message
+            });
+        }
+    }
+
+
+    document.addEventListener('DOMContentLoaded', function () {
+            const tableRows = document.querySelectorAll('tbody tr');
+
+            tableRows.forEach(row => {
+                row.addEventListener('click', function () {
+                    // Remove .highlighted class from all rows
+                    tableRows.forEach(r => {
+                        r.querySelector('td:nth-child(2)').classList.remove('highlighted');
+                    });
+
+                    // Add .highlighted class to the clicked row
+                    const titleCell = row.querySelector('td:nth-child(2)');
+                    titleCell.classList.toggle('highlighted');
+
+                    // Get the song ID
+                    const songId = row.getAttribute('data-song-id');
+                    
+                    if (songId) {
+                        console.log('Song ID:', songId);
+                        
+                        playSong(songId);
+                    }
+
+                });
+            });
+        });
+</script>
+
+{% endblock %}

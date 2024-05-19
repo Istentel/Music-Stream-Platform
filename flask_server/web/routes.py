@@ -1,7 +1,7 @@
 from web import app
 from flask import session, render_template, redirect, url_for, jsonify, flash
 from auth_svc.auth import register_user_api, login_user_api, validate_token
-from web.forms import RegisterForm, LoginForm
+from web.forms import RegisterForm, LoginForm, SearchForm
 import requests, base64
 
 @app.route('/')
@@ -69,6 +69,43 @@ def favourite_page():
         flash(e, category='danger')
         return redirect(url_for("login_page"))
 
+
+@app.context_processor
+def base():
+    form = SearchForm()
+    return dict(form=form)
+
+@app.route('/search', methods=['POST'])
+def search():
+    if not session.get("token"):
+            return redirect(url_for('login_page'))
+
+    email, err = validate_token(session["token"])
+
+    if err:
+        return err
+    
+    form = SearchForm()
+
+    if form.validate_on_submit():
+        post_searched = form.searched.data.lower()
+
+        songs_response = requests.get(f'http://playback:5000/api/songs/{email}')
+
+        if songs_response.status_code != 200:
+            return 'Failed to fetch songs data'
+
+        songs = songs_response.json()
+
+        songs = [song for song in songs if post_searched in song['name'].lower()]
+
+        # Decode base64-encoded image data
+        for song in songs:
+            if 'image' in song:
+                image_data = base64.b64decode(song['image'])
+                song['image'] = f"data:image/png;base64,{base64.b64encode(image_data).decode()}"
+
+        return render_template('search.html', form=form, searched=post_searched, logged_in=True, email=email, songs=songs, flash_message=True)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login_page():

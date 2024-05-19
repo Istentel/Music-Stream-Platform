@@ -13,15 +13,15 @@ def register_user_api(new_user: dict):
     return response
         
 def login_user_api(user: str, password: str):
-
-    auth = HTTPBasicAuth(user, password)
-
     try:
+        auth = HTTPBasicAuth(user, password)
+
         response = requests.get('http://auth_service:5001/login', auth=auth)
+        
+        return response
     except Exception as err:
         print(err)
-    
-    return response
+        return err, 404
 
 #VALIDATE
 def validate_request(request):
