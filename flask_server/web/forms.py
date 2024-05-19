@@ -1,14 +1,13 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import Length, Email, EqualTo, DataRequired, ValidationError
-from web.models import User
 
 class RegisterForm(FlaskForm):
     
-    def validate_email(self, email_to_check):
-        email = User.query.filter_by(email=email_to_check.data).first()
-        if email:
-            raise ValidationError('Email already exists!')
+    # def validate_email(self, email_to_check):
+    #     email = User.query.filter_by(email=email_to_check.data).first()
+    #     if email:
+    #         raise ValidationError('Email already exists!')
 
     firstname = StringField(label='First Name:', validators=[Length(min=2, max=50), DataRequired()])
     lastname = StringField(label='Last Name:', validators=[Length(min=2, max=50), DataRequired()])
@@ -21,3 +20,7 @@ class LoginForm(FlaskForm):
     email = StringField(label='Email', validators=[DataRequired()])
     password = PasswordField(label='Password:', validators=[DataRequired()])
     submit = SubmitField(label='Sign in')
+
+class SearchForm(FlaskForm):
+    searched = StringField("Searched", validators=[DataRequired()])
+    submit = SubmitField("Submit")

@@ -11,10 +11,11 @@ Home Page
             margin: 0;
             padding: 0;
         }
-        .container {
+        .songsTable {
             width: 100%;
             margin: 20px auto;
-            padding: 20px;
+            /* padding: 20px; this narrows the list*/
+            padding-bottom: 65px; 
             background-color: #fff;
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
@@ -48,15 +49,16 @@ Home Page
 {% endblock %}
 
 {% block content %}
-<div class="container">
-    <table>
+<div class="songsTable">
+    <table class="table table-hover table-dark">
         <thead>
             <tr>
-                <th>#</th>
-                <th>Title</th>
-                <th>Artist</th>
-                <th>Album</th>
-                <th>Duration</th>
+                <th scope="col">#</th>
+                <th scope="col">Title</th>
+                <th scope="col">Artist</th>
+                <th scope="col">Album</th>
+                <th scope="col">Duration</th>
+                <th scope="col">Favourite</th>
             </tr>
         </thead>
         <tbody>
@@ -72,6 +74,13 @@ Home Page
                     <td>{{ song.artist }}</td>
                     <td>{{ song.album }}</td>
                     <td>{{ song.duration}}</td>
+                    <td>
+                        <i onclick="likeSong(event, '{{song.id}}')"
+                            class="bi {{ 'bi-heart-fill' if song.favourite else 'bi-heart' }}"
+                            id="favouriteButton_{{ song.id }}"
+                            style="text-align: center;">
+                        </i>
+                    </td>
                 </tr>
             {% endfor %}
         </tbody>
@@ -82,6 +91,74 @@ Home Page
 {% include 'playbar.html' %}
 
 <script>
+    
+    function likeSong(event, songId){
+        event.stopPropagation();
+
+        let favouriteButton = document.getElementById("favouriteButton_" + songId);
+
+        if(favouriteButton.classList.contains("bi-heart-fill")){
+            favouriteButton.classList.remove("bi-heart-fill");
+            favouriteButton.classList.add("bi-heart");
+
+             // Remove the song from favorites
+            fetch('http://localhost:5001/favourites/remove', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: '{{email}}', // Replace with the user's email
+                    song_id: songId,
+                }),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to remove song from favorites');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log(data.message); // Log success message
+                // Update the UI to reflect the removal of the favorite
+                favouriteButton.classList.remove("bi-heart-fill");
+                favouriteButton.classList.add("bi-heart");
+            })
+            .catch(error => {
+                console.error(error.message); // Log error message
+            });
+        }
+        else{
+            favouriteButton.classList.add("bi-heart-fill");
+            favouriteButton.classList.remove("bi-heart");
+
+            // Make a POST request to add the song to favorites
+            fetch('http://localhost:5001/favourites/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: '{{email}}',
+                    song_id: songId,
+                }),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to add song to favorites');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log(data.message); // Log success message
+            })
+            .catch(error => {
+                console.error(error.message); // Log error message
+            });
+        }
+    }
+
+
     document.addEventListener('DOMContentLoaded', function () {
             const tableRows = document.querySelectorAll('tbody tr');
 
@@ -108,35 +185,6 @@ Home Page
                 });
             });
         });
-
-    document.addEventListener('DOMContentLoaded', function () {
-        const songList = document.getElementById('songList');
-
-        // Add click event listener to each list item
-        songList.addEventListener('click', function (event) {
-            const listItem = event.target.closest('li'); // Get the closest <li> element
-            if (listItem) {
-                const songId = listItem.getAttribute('data-song-id');
-
-                // Remove 'active' class from previously clicked items
-                const previousActiveItem = songList.querySelector('.active');
-
-                if (previousActiveItem) {
-                    previousActiveItem.classList.remove('active');
-                }
-                
-                // Add 'active' class to the clicked item
-                listItem.classList.add('active');
-
-                if (songId) {
-                    // Perform a certain action based on the song ID
-                    console.log('Song with ID', songId, 'clicked');
-                    // You can call a function here to handle the click event
-                    playSong(songId);
-                }
-            }
-        });
-    });
 </script>
 
 {% endblock %}

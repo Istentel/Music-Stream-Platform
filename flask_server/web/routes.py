@@ -1,43 +1,127 @@
-from web import app, db
-from flask import render_template, redirect, url_for, jsonify, flash
-from web.forms import RegisterForm, LoginForm
-from web.models import User
-from flask_login import login_user, logout_user
+from web import app
+from flask import session, render_template, redirect, url_for, jsonify, flash
+from auth_svc.auth import register_user_api, login_user_api, validate_token
+from web.forms import RegisterForm, LoginForm, SearchForm
 import requests, base64
 
 @app.route('/')
 @app.route('/home')
 def home_page():
-    songs_response = requests.get('http://playback:5000/api/songs')
+    try:
+        if not session.get("token"):
+            return redirect(url_for('login_page'))
 
-    if songs_response.status_code != 200:
-        return 'Failed to fetch songs data'
+        email, err = validate_token(session["token"])
+
+        if err:
+            return err
+
+        songs_response = requests.get(f'http://playback:5000/api/songs/{email}')
+
+        if songs_response.status_code != 200:
+            return 'Failed to fetch songs data'
+        
+        songs = songs_response.json()
+
+        # Decode base64-encoded image data
+        for song in songs:
+            if 'image' in song:
+                image_data = base64.b64decode(song['image'])
+                song['image'] = f"data:image/png;base64,{base64.b64encode(image_data).decode()}"
+        
+
+        return render_template('home.html', logged_in=True, email=email, songs=songs, flash_message=True)
     
-    songs = songs_response.json()
-
-    # Decode base64-encoded image data
-    for song in songs:
-        if 'image' in song:
-            image_data = base64.b64decode(song['image'])
-            song['image'] = f"data:image/png;base64,{base64.b64encode(image_data).decode()}"
+    except KeyError as e:
+        flash(e, category='danger')
+        return redirect(url_for("login_page"))
     
+@app.route('/favourite')
+def favourite_page():
+    try:
+        if not session.get("token"):
+            return redirect(url_for('login_page'))
+        
+        email, err = validate_token(session["token"])
 
-    return render_template('home.html', songs=songs, flash_message=True)
+        if err:
+            return err
+        
+        songs_response = requests.get(f'http://playback:5000/api/songs/{email}')
+
+        if songs_response.status_code != 200:
+            return 'Failed to fetch songs data'
+        
+        songs = songs_response.json()
+
+        songs = [song for song in songs if song.get('favourite', True)]
+
+        # Decode base64-encoded image data
+        for song in songs:
+            if 'image' in song:
+                image_data = base64.b64decode(song['image'])
+                song['image'] = f"data:image/png;base64,{base64.b64encode(image_data).decode()}"
+        
+
+        return render_template('favourite.html', logged_in=True, email=email, songs=songs, flash_message=True)
+        
+    except KeyError as e:
+        flash(e, category='danger')
+        return redirect(url_for("login_page"))
+
+
+@app.context_processor
+def base():
+    form = SearchForm()
+    return dict(form=form)
+
+@app.route('/search', methods=['POST'])
+def search():
+    if not session.get("token"):
+            return redirect(url_for('login_page'))
+
+    email, err = validate_token(session["token"])
+
+    if err:
+        return err
+    
+    form = SearchForm()
+
+    if form.validate_on_submit():
+        post_searched = form.searched.data.lower()
+
+        songs_response = requests.get(f'http://playback:5000/api/songs/{email}')
+
+        if songs_response.status_code != 200:
+            return 'Failed to fetch songs data'
+
+        songs = songs_response.json()
+
+        songs = [song for song in songs if post_searched in song['name'].lower()]
+
+        # Decode base64-encoded image data
+        for song in songs:
+            if 'image' in song:
+                image_data = base64.b64decode(song['image'])
+                song['image'] = f"data:image/png;base64,{base64.b64encode(image_data).decode()}"
+
+        return render_template('search.html', form=form, searched=post_searched, logged_in=True, email=email, songs=songs, flash_message=True)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login_page():
     form = LoginForm()
 
     if form.validate_on_submit():
-        attempted_user = User.query.filter_by(email=form.email.data).first()
+        response = login_user_api(form.email.data, form.password.data)
 
-        if attempted_user and attempted_user.check_password_correction(attempted_password=form.password.data):
-            login_user(attempted_user)
+        if response and response.status_code == 200:
+            token = response.json().get('token')
+            session["token"] = token
             flash('Success! You logged in!', category='success')
             return redirect(url_for('home_page'))
         else:
             flash('Username or password are not correct! Please try again!', category='danger')
-    return render_template('login.html', form=form)
+    return render_template('login.html', logged_in=False, form=form)
 
 @app.route('/testapi')
 def test_api():
@@ -56,14 +140,17 @@ def register_page():
     form = RegisterForm()
 
     if form.validate_on_submit():
-        new_user = User(firstname=form.firstname.data, 
-                        lastname=form.lastname.data,
-                        password=form.password1.data,
-                        email=form.email.data)
+        new_user = {'firstname': form.firstname.data, 'lastname': form.lastname.data, 'password': form.password1.data, 'email': form.email.data}
         
-        db.session.add(new_user)
-        db.session.commit()
-        return redirect(url_for('home_page'))
+        response = register_user_api(new_user)
+
+        if response and response.status_code == 201:
+            token = response.json().get('token')
+            session["token"] = token
+            flash(f'Success! User {new_user["firstname"]} {new_user["lastname"]} created succesfully!', category='success')
+            return redirect(url_for('home_page'))
+        else:
+            return jsonify({'message': 'No valid response'}), 204
     
     if form.errors != {}:
         for err_msj in form.errors.values():
@@ -73,6 +160,6 @@ def register_page():
 
 @app.route('/logout')
 def logout_page():
-    logout_user()
+    session["token"] = None
     flash("You have been logged out!", category='info')
     return redirect(url_for('home_page'))
